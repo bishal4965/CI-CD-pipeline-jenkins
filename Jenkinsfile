@@ -11,16 +11,10 @@ pipeline {
     }
     stage('Login to Docker Hub') {
       environment {
-        DOCKER_HUB_PASSWORD = credentials ('DOCKER_HUB_PASSWORD')  // Use stored credentials
+        DOCKER_HUB_PASSWORD = credentials('DOCKER_HUB_PASSWORD')  // Use stored credentials
       }
       steps {
         sh 'echo $DOCKER_HUB_PASSWORD | docker login -u $DOCKER_HUB_USER --password-stdin'
-      }
-    }
-    stage('Set Kubernetes Context') {
-      steps {
-        // Set the correct kubectl context
-        sh 'kubectl config use-context minikube'
       }
     }
     stage('Build Backend Image') {
@@ -39,10 +33,14 @@ pipeline {
         sh 'docker push $DOCKER_HUB_USER/frontend:latest'
       }
     }
-    stage('Deploy to Kubernetes') {
+    stage('Run Backend Container') {
       steps {
-        sh 'kubectl apply -f k8s/03-backend.yaml'
-        sh 'kubectl apply -f k8s/04-frontend.yaml'
+        sh 'docker run -d --name backend -p 8080:8080 $DOCKER_HUB_USER/backend:latest'
+      }
+    }
+    stage('Run Frontend Container') {
+      steps {
+        sh 'docker run -d --name frontend -p 80:80 $DOCKER_HUB_USER/frontend:latest'
       }
     }
   }
