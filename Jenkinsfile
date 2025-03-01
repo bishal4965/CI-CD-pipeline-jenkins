@@ -35,12 +35,12 @@ pipeline {
     }
     stage('Run Backend Container') {
       steps {
-        sh 'docker run -d --name backend -p 8080:8080 $DOCKER_HUB_USER/backend:latest'
+        sh 'docker run -d --name backend --network mynetwork -p 5000:8080 $DOCKER_HUB_USER/backend:latest'
       }
     }
     stage('Run Frontend Container') {
       steps {
-        sh 'docker run -d --name frontend -p 80:80 $DOCKER_HUB_USER/frontend:latest'
+        sh 'docker run -d --name frontend --network mynetwork -p 80:80 $DOCKER_HUB_USER/frontend:latest'
       }
     }
   }
