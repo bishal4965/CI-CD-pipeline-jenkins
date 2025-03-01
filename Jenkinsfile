@@ -46,7 +46,7 @@ pipeline {
         stage('Deploy Containers') {
             steps {
                 sh 'docker network create mynetwork || true'
-                sh 'docker run -d --name backend --network mynetwork -p 5000:5000 $DOCKER_HUB_USER/backend:latest'
+                sh 'docker run -d --name backend --network mynetwork -v $(pwd)/backend:/app -p 5000:5000 $DOCKER_HUB_USER/backend:latest'
                 sh 'sleep 5'  // Wait for backend to initialize
                 sh 'docker run -d --name frontend --network mynetwork -p 80:80 $DOCKER_HUB_USER/frontend:latest'
             }
