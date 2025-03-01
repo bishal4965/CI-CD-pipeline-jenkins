@@ -17,6 +17,12 @@ pipeline {
         sh 'echo $DOCKER_HUB_PASSWORD | docker login -u $DOCKER_HUB_USER --password-stdin'
       }
     }
+    stage('Set Kubernetes Context') {
+      steps {
+        // Set the correct kubectl context
+        sh 'kubectl config use-context minikube'
+      }
+    }
     stage('Build Backend Image') {
       steps {
         sh 'docker build -t $DOCKER_HUB_USER/backend:latest -f backend/Dockerfile backend'
