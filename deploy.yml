@@ -1,0 +1,45 @@
+---
+- name: Deploy application containers
+  hosts: localhost
+  tasks:
+    - name: Create network if not exists
+      community.docker.docker_network:
+        name: mynetwork
+        state: present
+
+    - name: Stop and remove existing containers
+      community.docker.docker_container:
+        name: "{{ item }}"
+        state: absent
+        force_kill: yes
+      loop:
+        - backend
+        - frontend
+
+    - name: Deploy backend container
+      community.docker.docker_container:
+        name: backend
+        image: "{{ docker_hub_user }}/backend:latest"
+        networks:
+          - name: mynetwork
+        volumes:
+          - "./backend:/app"
+        ports:
+          - "5000:5000"
+        state: started
+
+    - name: Wait for backend initialization
+      wait_for:
+        port: 5000
+        delay: 5
+        timeout: 60
+
+    - name: Deploy frontend container
+      community.docker.docker_container:
+        name: frontend
+        image: "{{ docker_hub_user }}/frontend:latest"
+        networks:
+          - name: mynetwork
+        ports:
+          - "80:80"
+        state: started

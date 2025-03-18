@@ -4,12 +4,17 @@ pipeline {
         DOCKER_HUB_USER = 'arbish09'
     }
     stages {
+        // ANSIBLE HANDLES THE CLEANUP PROCESS //
+        /*
         stage('Clean Previous Containers') {
             steps {
                 sh 'docker stop frontend backend || true'
                 sh 'docker rm frontend backend || true'
             }
         }
+        */
+        // ANSIBLE HANDLES THE CLEANUP PROCESS //
+
         stage('Clone Repository') {
             steps {
                 git branch: 'main', url: 'https://github.com/bishal4965/CI-CD-pipeline-jenkins.git'
@@ -43,12 +48,23 @@ pipeline {
                 sh 'docker push $DOCKER_HUB_USER/frontend:latest'
             }
         }
+
+        // ANSIBLE HANDLES THE DEPLOYMENT //
+        /*
         stage('Deploy Containers') {
             steps {
                 sh 'docker network create mynetwork || true'
                 sh 'docker run -d --name backend --network mynetwork -v $(pwd)/backend:/app -p 5000:5000 $DOCKER_HUB_USER/backend:latest'
                 sh 'sleep 5'  // Wait for backend to initialize
                 sh 'docker run -d --name frontend --network mynetwork -p 80:80 $DOCKER_HUB_USER/frontend:latest'
+            }
+        }
+        */
+        // ANSIBLE HANDLES THE DEPLOYMENT //
+
+        stage('Ansible Deployment') {
+            steps {
+                sh 'ansible-playbook deploy.yml -e docker_hub_user=$DOCKER_HUB_USER'
             }
         }
     }
