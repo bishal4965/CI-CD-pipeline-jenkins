@@ -25,7 +25,7 @@ pipeline {
                     echo "Checking out branch: ${branchName}"
                     checkout([
                         $class: 'GitSCM',
-                        branches: [[name: "origin/${branchName}"]],
+                        branches: [[name: "${branchName}"]],
                         doGenerateSubmoduleConfigurations: false,
                         extensions: [],
                         userRemoteConfigs: [[url: 'https://github.com/bishal4965/CI-CD-pipeline-jenkins.git']]
