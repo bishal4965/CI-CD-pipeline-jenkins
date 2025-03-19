@@ -1,89 +1,89 @@
 pipeline {
     agent any
-    triggers {
-        githubPush()  // Listens for GitHub push events
-    }
+    
     environment {
-        DOCKER_HUB_USER = 'arbish09'
+        DOCKER_HUB_USER = credentials('docker-hub-username')
+        BUILD_NUMBER = "${env.BUILD_NUMBER}"
     }
+    
+    triggers {
+        githubPush()
+    }
+    
     stages {
-        // ANSIBLE HANDLES THE CLEANUP PROCESS //
-        /*
-        stage('Clean Previous Containers') {
+        stage('Clone Repository') {
             steps {
-                sh 'docker stop frontend backend || true'
-                sh 'docker rm frontend backend || true'
+                checkout scm
             }
         }
-        */
-        // ANSIBLE HANDLES THE CLEANUP PROCESS //
-
-        stage('Checkout') {
+        
+        stage('Login to Docker Hub') {
             steps {
-                script {
-                    def branchName = env.GIT_BRANCH ?: 'main'  // Default to 'main' if no GIT_BRANCH is set
-                    echo "Checking out branch: ${branchName}"
-                    checkout([
-                        $class: 'GitSCM',
-                        branches: [[name: "${branchName}"]],
-                        doGenerateSubmoduleConfigurations: false,
-                        extensions: [],
-                        userRemoteConfigs: [[url: 'https://github.com/bishal4965/CI-CD-pipeline-jenkins.git']]
-                    ])
+                withCredentials([string(credentialsId: 'docker-hub-password', variable: 'DOCKER_PASS')]) {
+                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_HUB_USER --password-stdin'
                 }
             }
         }
-        stage('Login to Docker Hub') {
-            environment {
-                DOCKER_HUB_PASSWORD = credentials('DOCKER_HUB_PASSWORD')
-            }
-            steps {
-                sh 'echo $DOCKER_HUB_PASSWORD | docker login -u $DOCKER_HUB_USER --password-stdin'
-            }
-        }
+        
         stage('Build Images') {
             parallel {
                 stage('Backend') {
                     steps {
-                        sh 'docker build -t $DOCKER_HUB_USER/backend:latest -f backend/Dockerfile backend'
+                        sh 'docker build -t $DOCKER_HUB_USER/backend:$BUILD_NUMBER -t $DOCKER_HUB_USER/backend:latest -f backend/Dockerfile backend'
                     }
                 }
+                
                 stage('Frontend') {
                     steps {
-                        sh 'docker build -t $DOCKER_HUB_USER/frontend:latest -f frontend/Dockerfile frontend'
+                        sh 'docker build -t $DOCKER_HUB_USER/frontend:$BUILD_NUMBER -t $DOCKER_HUB_USER/frontend:latest -f frontend/Dockerfile frontend'
                     }
                 }
             }
         }
+        
         stage('Push Images') {
-            steps {
-                sh 'docker push $DOCKER_HUB_USER/backend:latest'
-                sh 'docker push $DOCKER_HUB_USER/frontend:latest'
+            parallel {
+                stage('Push Backend') {
+                    steps {
+                        sh 'docker push $DOCKER_HUB_USER/backend:$BUILD_NUMBER'
+                        sh 'docker push $DOCKER_HUB_USER/backend:latest'
+                    }
+                }
+                
+                stage('Push Frontend') {
+                    steps {
+                        sh 'docker push $DOCKER_HUB_USER/frontend:$BUILD_NUMBER'
+                        sh 'docker push $DOCKER_HUB_USER/frontend:latest'
+                    }
+                }
             }
         }
-
-        // ANSIBLE HANDLES THE DEPLOYMENT //
-        /*
-        stage('Deploy Containers') {
+        
+        stage('Deploy with Ansible') {
             steps {
-                sh 'docker network create mynetwork || true'
-                sh 'docker run -d --name backend --network mynetwork -v $(pwd)/backend:/app -p 5000:5000 $DOCKER_HUB_USER/backend:latest'
-                sh 'sleep 5'  // Wait for backend to initialize
-                sh 'docker run -d --name frontend --network mynetwork -p 80:80 $DOCKER_HUB_USER/frontend:latest'
-            }
-        }
-        */
-        // ANSIBLE HANDLES THE DEPLOYMENT //
-
-        stage('Ansible Deployment') {
-            steps {
-                sh 'ansible-playbook deploy.yml -e docker_hub_user=$DOCKER_HUB_USER'
+                ansiblePlaybook(
+                    playbook: 'deploy.yml',
+                    extraVars: [
+                        docker_hub_user: env.DOCKER_HUB_USER,
+                        build_number: env.BUILD_NUMBER
+                    ],
+                    colorized: true
+                )
             }
         }
     }
+    
     post {
         always {
-            echo 'Pipeline completed'
+            sh 'docker logout'
+        }
+        
+        success {
+            echo 'Pipeline completed successfully!'
+        }
+        
+        failure {
+            echo 'Pipeline failed!'
         }
     }
 }
