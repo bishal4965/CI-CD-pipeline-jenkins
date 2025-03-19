@@ -29,12 +29,12 @@ pipeline {
             parallel {
                 stage('Backend') {
                     steps {
-                        sh 'docker build -t $DOCKER_HUB_USER/backend:latest -t $DOCKER_HUB_USER/backend:${GIT_BRANCH.replaceAll("/", "-")}-${BUILD_NUMBER} -f backend/Dockerfile backend'
+                        sh "docker build -t $DOCKER_HUB_USER/backend:latest -t $DOCKER_HUB_USER/backend:${GIT_BRANCH.replaceAll('/', '-')}-${BUILD_NUMBER} -f backend/Dockerfile backend"
                     }
                 }
                 stage('Frontend') {
                     steps {
-                        sh 'docker build -t $DOCKER_HUB_USER/frontend:latest -t $DOCKER_HUB_USER/frontend:${GIT_BRANCH.replaceAll("/", "-")}-${BUILD_NUMBER} -f frontend/Dockerfile frontend'
+                        sh "docker build -t $DOCKER_HUB_USER/frontend:latest -t $DOCKER_HUB_USER/frontend:${GIT_BRANCH.replaceAll('/', '-')}-${BUILD_NUMBER} -f frontend/Dockerfile frontend"
                     }
                 }
             }
@@ -43,15 +43,15 @@ pipeline {
         stage('Push Images') {
             steps {
                 sh 'docker push $DOCKER_HUB_USER/backend:latest'
-                sh 'docker push $DOCKER_HUB_USER/backend:${GIT_BRANCH.replaceAll("/", "-")}-${BUILD_NUMBER}'
+                sh "docker push $DOCKER_HUB_USER/backend:${GIT_BRANCH.replaceAll('/', '-')}-${BUILD_NUMBER}"
                 sh 'docker push $DOCKER_HUB_USER/frontend:latest'
-                sh 'docker push $DOCKER_HUB_USER/frontend:${GIT_BRANCH.replaceAll("/", "-")}-${BUILD_NUMBER}'
+                sh "docker push $DOCKER_HUB_USER/frontend:${GIT_BRANCH.replaceAll('/', '-')}-${BUILD_NUMBER}"
             }
         }
 
         stage('Ansible Deployment') {
             steps {
-                sh 'ansible-playbook deploy.yml -e docker_hub_user=$DOCKER_HUB_USER -e git_branch=${GIT_BRANCH.replaceAll("/", "-")} -e build_number=${BUILD_NUMBER}'
+                sh "ansible-playbook deploy.yml -e docker_hub_user=$DOCKER_HUB_USER -e git_branch=${GIT_BRANCH.replaceAll('/', '-')} -e build_number=${BUILD_NUMBER}"
             }
         }
     }
