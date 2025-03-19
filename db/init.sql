@@ -1,6 +1,9 @@
-CREATE TABLE IF NOT EXISTS test (
+-- Database initialization script
+CREATE TABLE IF NOT EXISTS todos (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    message VARCHAR(255) NOT NULL
+    task VARCHAR(200) NOT NULL
 );
 
-INSERT INTO test(message) VALUES('Database Initialized');
+-- Initial example data
+INSERT INTO todos (task) VALUES ('Complete DevOps project');
+INSERT INTO todos (task) VALUES ('Set up Prometheus monitoring');
