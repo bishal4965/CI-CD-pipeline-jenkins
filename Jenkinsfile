@@ -1,5 +1,8 @@
 pipeline {
     agent any
+    triggers {
+        githubPush()  // Listens for GitHub push events
+    }
     environment {
         DOCKER_HUB_USER = 'arbish09'
     }
@@ -15,9 +18,19 @@ pipeline {
         */
         // ANSIBLE HANDLES THE CLEANUP PROCESS //
 
-        stage('Clone Repository') {
+        stage('Checkout') {
             steps {
-                git branch: 'feature-monitoring', url: 'https://github.com/bishal4965/CI-CD-pipeline-jenkins.git'
+                script {
+                    def branchName = env.GIT_BRANCH ?: 'main'  // Default to 'main' if no GIT_BRANCH is set
+                    echo "Checking out branch: ${branchName}"
+                    checkout([
+                        $class: 'GitSCM',
+                        branches: [[name: "origin/${branchName}"]],
+                        doGenerateSubmoduleConfigurations: false,
+                        extensions: [],
+                        userRemoteConfigs: [[url: 'https://github.com/bishal4965/CI-CD-pipeline-jenkins.git']]
+                    ])
+                }
             }
         }
         stage('Login to Docker Hub') {
