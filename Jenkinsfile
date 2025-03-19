@@ -2,26 +2,26 @@ pipeline {
     agent any
     
     environment {
-        DOCKER_HUB_USER = credentials('docker-hub-username')
-        BUILD_NUMBER = "${env.BUILD_NUMBER}"
+        DOCKER_HUB_USER = 'arbish09'
     }
     
     triggers {
-        githubPush()
+        githubPush()  // Add GitHub webhook trigger
     }
     
     stages {
         stage('Clone Repository') {
             steps {
-                checkout scm
+                checkout scm  // This will check out the branch that triggered the build
             }
         }
         
         stage('Login to Docker Hub') {
+            environment {
+                DOCKER_HUB_PASSWORD = credentials('DOCKER_HUB_PASSWORD')
+            }
             steps {
-                withCredentials([string(credentialsId: 'docker-hub-password', variable: 'DOCKER_PASS')]) {
-                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_HUB_USER --password-stdin'
-                }
+                sh 'echo $DOCKER_HUB_PASSWORD | docker login -u $DOCKER_HUB_USER --password-stdin'
             }
         }
         
@@ -29,61 +29,43 @@ pipeline {
             parallel {
                 stage('Backend') {
                     steps {
-                        sh 'docker build -t $DOCKER_HUB_USER/backend:$BUILD_NUMBER -t $DOCKER_HUB_USER/backend:latest -f backend/Dockerfile backend'
+                        sh 'docker build -t $DOCKER_HUB_USER/backend:latest -t $DOCKER_HUB_USER/backend:${GIT_BRANCH.replaceAll("/", "-")}-${BUILD_NUMBER} -f backend/Dockerfile backend'
                     }
                 }
-                
                 stage('Frontend') {
                     steps {
-                        sh 'docker build -t $DOCKER_HUB_USER/frontend:$BUILD_NUMBER -t $DOCKER_HUB_USER/frontend:latest -f frontend/Dockerfile frontend'
+                        sh 'docker build -t $DOCKER_HUB_USER/frontend:latest -t $DOCKER_HUB_USER/frontend:${GIT_BRANCH.replaceAll("/", "-")}-${BUILD_NUMBER} -f frontend/Dockerfile frontend'
                     }
                 }
             }
         }
         
         stage('Push Images') {
-            parallel {
-                stage('Push Backend') {
-                    steps {
-                        sh 'docker push $DOCKER_HUB_USER/backend:$BUILD_NUMBER'
-                        sh 'docker push $DOCKER_HUB_USER/backend:latest'
-                    }
-                }
-                
-                stage('Push Frontend') {
-                    steps {
-                        sh 'docker push $DOCKER_HUB_USER/frontend:$BUILD_NUMBER'
-                        sh 'docker push $DOCKER_HUB_USER/frontend:latest'
-                    }
-                }
+            steps {
+                sh 'docker push $DOCKER_HUB_USER/backend:latest'
+                sh 'docker push $DOCKER_HUB_USER/backend:${GIT_BRANCH.replaceAll("/", "-")}-${BUILD_NUMBER}'
+                sh 'docker push $DOCKER_HUB_USER/frontend:latest'
+                sh 'docker push $DOCKER_HUB_USER/frontend:${GIT_BRANCH.replaceAll("/", "-")}-${BUILD_NUMBER}'
             }
         }
-        
-        stage('Deploy with Ansible') {
+
+        stage('Ansible Deployment') {
             steps {
-                ansiblePlaybook(
-                    playbook: 'deploy.yml',
-                    extraVars: [
-                        docker_hub_user: env.DOCKER_HUB_USER,
-                        build_number: env.BUILD_NUMBER
-                    ],
-                    colorized: true
-                )
+                sh 'ansible-playbook deploy.yml -e docker_hub_user=$DOCKER_HUB_USER -e git_branch=${GIT_BRANCH.replaceAll("/", "-")} -e build_number=${BUILD_NUMBER}'
             }
         }
     }
     
     post {
         always {
-            sh 'docker logout'
+            sh 'docker logout || true'
+            echo 'Pipeline completed'
         }
-        
         success {
-            echo 'Pipeline completed successfully!'
+            echo "Build successful for branch ${GIT_BRANCH}"
         }
-        
         failure {
-            echo 'Pipeline failed!'
+            echo "Build failed for branch ${GIT_BRANCH}"
         }
     }
 }
