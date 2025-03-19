@@ -44,7 +44,8 @@
     - name: Deploy backend container
       community.docker.docker_container:
         name: backend
-        image: "{{ docker_hub_user }}/backend:{{ build_number | default('latest') }}"
+        image: "{{ docker_hub_user }}/backend:latest"
+
         networks:
           - name: app_network
         ports:
@@ -60,7 +61,8 @@
     - name: Deploy frontend container
       community.docker.docker_container:
         name: frontend
-        image: "{{ docker_hub_user }}/frontend:{{ build_number | default('latest') }}"
+        image: "{{ docker_hub_user }}/frontend:latest"
+
         networks:
           - name: app_network
         ports:
