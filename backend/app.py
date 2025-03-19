@@ -4,6 +4,8 @@ import os
 from prometheus_client import Counter, Histogram, generate_latest
 import time
 from urllib.parse import quote_plus
+from sqlalchemy import inspect
+
 
 
 # Prometheus metrics
@@ -31,7 +33,10 @@ class Todo(db.Model):
 
 # Create the tables
 with app.app_context():
-    db.create_all()
+    # Check if table exists before creating
+    inspector = inspect(db.engine)
+    if not inspector.has_table('todo'):
+        db.create_all()
 
 # Middleware for metrics
 @app.before_request

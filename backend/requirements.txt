@@ -6,3 +6,4 @@ prometheus-client==0.16.0
 gunicorn==21.2.0
 Werkzeug==2.2.3
 cryptography==3.4.8
+SQLAlchemy>=1.4.46
