@@ -3,6 +3,8 @@ body {
   padding: 20px;
   text-align: center;
   background-color: #f7f7f7;
+  max-width: 800px;
+  margin: 0 auto;
 }
 
 h1 {
@@ -11,12 +13,13 @@ h1 {
 
 #todos-container {
   margin: 20px auto;
-  width: 50%;
+  width: 80%;
   background: #fff;
   padding: 15px;
   border: 1px solid #ddd;
   border-radius: 5px;
   text-align: left;
+  min-height: 100px;
 }
 
 #todos-container ul {
@@ -51,4 +54,9 @@ h1 {
   color: #fff;
   border-radius: 3px;
   cursor: pointer;
+}
+
+.error {
+  color: #c62828;
+  font-weight: bold;
 }
