@@ -80,6 +80,8 @@
           - "9091:9090"
         volumes:
           - "./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro"
+        extra_hosts:
+          - "host.docker.internal:host-gateway"
         state: started
         restart_policy: always
 
