@@ -81,7 +81,7 @@
         volumes:
           - "./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro"
         etc_hosts:
-          - "host.docker.internal:host-gateway"
+          host.docker.internal: "host-gateway"
         state: started
         restart_policy: always
 
