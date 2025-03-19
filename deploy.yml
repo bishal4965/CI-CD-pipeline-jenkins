@@ -4,7 +4,7 @@
   tasks:
     - name: Create network if not exists
       community.docker.docker_network:
-        name: mynetwork
+        name: app_network
         state: present
 
     - name: Stop and remove existing containers
@@ -13,33 +13,83 @@
         state: absent
         force_kill: yes
       loop:
-        - backend
         - frontend
+        - backend
+        - db
+        - prometheus
+        - grafana
+
+    - name: Deploy MySQL container
+      community.docker.docker_container:
+        name: db
+        image: mysql:8.0
+        networks:
+          - name: app_network
+        env:
+          MYSQL_ROOT_PASSWORD: rootpassword
+          MYSQL_DATABASE: appdb
+          MYSQL_USER: user
+          MYSQL_PASSWORD: user@1234
+        volumes:
+          - "./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro"
+          - "mysql_data:/var/lib/mysql"
+        state: started
+        restart_policy: always
+
+    - name: Wait for MySQL to initialize
+      ansible.builtin.wait_for:
+        timeout: 30
+      delegate_to: localhost
 
     - name: Deploy backend container
       community.docker.docker_container:
         name: backend
-        image: "{{ docker_hub_user }}/backend:latest"
+        image: "{{ docker_hub_user }}/backend:{{ build_number | default('latest') }}"
         networks:
-          - name: mynetwork
-        volumes:
-          - "./backend:/app"
+          - name: app_network
         ports:
           - "5000:5000"
+        env:
+          DB_HOST: "db"
+          DB_NAME: "appdb"
+          DB_USER: "user"
+          DB_PASSWORD: "user@1234"
         state: started
-
-    - name: Wait for backend initialization
-      wait_for:
-        port: 5000
-        delay: 5
-        timeout: 60
+        restart_policy: always
 
     - name: Deploy frontend container
       community.docker.docker_container:
         name: frontend
-        image: "{{ docker_hub_user }}/frontend:latest"
+        image: "{{ docker_hub_user }}/frontend:{{ build_number | default('latest') }}"
         networks:
-          - name: mynetwork
+          - name: app_network
         ports:
           - "80:80"
         state: started
+        restart_policy: always
+
+    - name: Deploy Prometheus
+      community.docker.docker_container:
+        name: prometheus
+        image: prom/prometheus:latest
+        networks:
+          - name: app_network
+        ports:
+          - "9090:9090"
+        volumes:
+          - "./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro"
+        state: started
+        restart_policy: always
+
+    - name: Deploy Grafana
+      community.docker.docker_container:
+        name: grafana
+        image: grafana/grafana:latest
+        networks:
+          - name: app_network
+        ports:
+          - "3000:3000"
+        volumes:
+          - "grafana_data:/var/lib/grafana"
+        state: started
+        restart_policy: always
