@@ -77,7 +77,7 @@
         networks:
           - name: app_network
         ports:
-          - "9090:9090"
+          - "9091:9090"
         volumes:
           - "./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro"
         state: started
