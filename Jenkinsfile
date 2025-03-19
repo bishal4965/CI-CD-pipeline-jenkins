@@ -17,7 +17,7 @@ pipeline {
 
         stage('Clone Repository') {
             steps {
-                git branch: '$GIT_BRANCH', url: 'https://github.com/bishal4965/CI-CD-pipeline-jenkins.git'
+                git branch: '${env.BRANCH_NAME}', url: 'https://github.com/bishal4965/CI-CD-pipeline-jenkins.git'
             }
         }
         stage('Login to Docker Hub') {
