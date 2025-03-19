@@ -1,35 +1,69 @@
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
+import os
+from prometheus_client import Counter, Histogram, generate_latest
+import time
+
+# Prometheus metrics
+REQUEST_COUNT = Counter('http_requests_total', 'Total HTTP Requests', ['method', 'endpoint'])
+REQUEST_LATENCY = Histogram('http_request_duration_seconds', 'Request latency', ['method', 'endpoint'])
 
 app = Flask(__name__)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///todos.db'
+# Get database configuration from environment
+db_user = os.getenv('DB_USER', 'user')
+db_password = os.getenv('DB_PASSWORD', 'user@1234')
+db_host = os.getenv('DB_HOST', 'db')
+db_name = os.getenv('DB_NAME', 'appdb')
+
+# Configure MySQL connection
+app.config['SQLALCHEMY_DATABASE_URI'] = f"mysql+pymysql://{db_user}:{db_password}@{db_host}/{db_name}"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
-# Define a Todo model.
+# Define a Todo model
 class Todo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     task = db.Column(db.String(200), nullable=False)
 
-# Create the tables (run this once or use migrations)
+# Create the tables
 with app.app_context():
     db.create_all()
 
-# Endpoint to list all todos.
+# Middleware for metrics
+@app.before_request
+def before_request():
+    request.start_time = time.time()
+
+@app.after_request
+def after_request(response):
+    latency = time.time() - request.start_time
+    REQUEST_COUNT.labels(request.method, request.path).inc()
+    REQUEST_LATENCY.labels(request.method, request.path).observe(latency)
+    return response
+
+# Health check endpoint
+@app.route('/health', methods=['GET'])
+def health_check():
+    return jsonify({'status': 'ok'}), 200
+
+# Prometheus metrics endpoint
+@app.route('/metrics', methods=['GET'])
+def metrics():
+    return generate_latest()
+
+# Endpoint to list all todos
 @app.route('/todos', methods=['GET'])
 def get_todos():
     todos = Todo.query.all()
-    # Serialize list of todos
     todos_list = [{'id': t.id, 'task': t.task} for t in todos]
     return jsonify({'todos': todos_list}), 200
 
-# Endpoint to create a new todo.
+# Endpoint to create a new todo
 @app.route('/todos', methods=['POST'])
 def create_todo():
     data = request.get_json()
-    # Basic validation to ensure 'task' is present.
     if not data or 'task' not in data:
         return jsonify({'error': 'Bad Request', 'message': 'Task is required'}), 400
 
