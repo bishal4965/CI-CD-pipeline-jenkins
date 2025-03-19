@@ -3,6 +3,8 @@ from flask_sqlalchemy import SQLAlchemy
 import os
 from prometheus_client import Counter, Histogram, generate_latest
 import time
+from urllib.parse import quote_plus
+
 
 # Prometheus metrics
 REQUEST_COUNT = Counter('http_requests_total', 'Total HTTP Requests', ['method', 'endpoint'])
@@ -12,7 +14,7 @@ app = Flask(__name__)
 
 # Get database configuration from environment
 db_user = os.getenv('DB_USER', 'user')
-db_password = os.getenv('DB_PASSWORD', 'user@1234')
+db_password = quote_plus(os.getenv('DB_PASSWORD', 'user@1234'))
 db_host = os.getenv('DB_HOST', 'db')
 db_name = os.getenv('DB_NAME', 'appdb')
 
