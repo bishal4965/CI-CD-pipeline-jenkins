@@ -30,7 +30,28 @@ window.addEventListener("load", function() {
     const ul = document.createElement("ul");
     todos.forEach(todo => {
       const li = document.createElement("li");
-      li.textContent = todo.task;
+      li.dataset.id = todo.id;
+      
+      // Create task text span
+      const taskSpan = document.createElement("span");
+      taskSpan.textContent = todo.task;
+      taskSpan.className = "todo-text";
+      if (todo.completed) {
+        taskSpan.classList.add("completed");
+      }
+      
+      // Add click event to toggle completion
+      taskSpan.addEventListener("click", () => toggleTodoCompletion(todo.id));
+      
+      // Create delete button
+      const deleteBtn = document.createElement("button");
+      deleteBtn.textContent = "Delete";
+      deleteBtn.className = "delete-btn";
+      deleteBtn.addEventListener("click", () => deleteTodo(todo.id));
+      
+      // Add elements to list item
+      li.appendChild(taskSpan);
+      li.appendChild(deleteBtn);
       ul.appendChild(li);
     });
     todosContainer.appendChild(ul);
@@ -60,6 +81,38 @@ window.addEventListener("load", function() {
     } finally {
       button.disabled = false;
       button.textContent = 'Add Todo';
+    }
+  }
+
+  // Deletes a todo
+  async function deleteTodo(id) {
+    try {
+      const response = await fetch(`${apiBaseUrl}/${id}`, {
+        method: "DELETE"
+      });
+      
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      
+      // After deleting, reload the todos
+      await fetchTodos();
+    } catch (error) {
+      console.error("Error deleting todo:", error);
+    }
+  }
+
+  // Toggles todo completion status
+  async function toggleTodoCompletion(id) {
+    try {
+      const response = await fetch(`${apiBaseUrl}/${id}/toggle`, {
+        method: "PUT"
+      });
+      
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      
+      // After updating, reload the todos
+      await fetchTodos();
+    } catch (error) {
+      console.error("Error updating todo:", error);
     }
   }
 
