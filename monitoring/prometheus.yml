@@ -32,6 +32,14 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:9100']
 
+  - job_name: 'docker-state'
+    static_configs:
+      - targets: ['localhost:8081']
+      
+  - job_name: 'docker-stats'
+    static_configs:
+      - targets: ['localhost:9487']
+
 
 
  
