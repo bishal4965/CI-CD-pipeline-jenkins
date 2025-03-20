@@ -51,7 +51,7 @@ pipeline {
 
         stage('Ansible Deployment') {
             steps {
-                sh "/usr/bin/ansible-playbook deploy.yml -e docker_hub_user=$DOCKER_HUB_USER -e git_branch=${GIT_BRANCH.replaceAll('/', '-')} -e build_number=${BUILD_NUMBER}"
+                sh "ansible-playbook deploy.yml -e docker_hub_user=$DOCKER_HUB_USER -e git_branch=${GIT_BRANCH.replaceAll('/', '-')} -e build_number=${BUILD_NUMBER}"
             }
         }
     }
