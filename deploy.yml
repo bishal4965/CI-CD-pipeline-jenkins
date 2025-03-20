@@ -19,13 +19,11 @@
         - prometheus
         - grafana
     
-    
     - name: Deploy MySQL container
       community.docker.docker_container:
         name: db
         image: mysql:8.0
-        networks:
-          - name: app_network
+        network_mode: host
         env:
           MYSQL_ROOT_PASSWORD: rootpassword
           MYSQL_DATABASE: appdb
@@ -46,12 +44,9 @@
       community.docker.docker_container:
         name: backend
         image: "{{ docker_hub_user }}/backend:latest"
-        networks:
-          - name: app_network
-        ports:
-          - "5000:5000"
+        network_mode: host
         env:
-          DB_HOST: "db"
+          DB_HOST: "localhost"
           DB_NAME: "appdb"
           DB_USER: "user"
           DB_PASSWORD: "user@1234"
@@ -62,10 +57,7 @@
       community.docker.docker_container:
         name: frontend
         image: "{{ docker_hub_user }}/frontend:latest"
-        networks:
-          - name: app_network
-        ports:
-          - "80:80"
+        network_mode: host
         state: started
         restart_policy: always
     
@@ -74,10 +66,6 @@
         name: prometheus
         image: prom/prometheus:latest
         network_mode: host
-        # networks:
-        #   - name: app_network
-        # ports:
-        #   - "9091:9090"
         volumes:
           - "./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro"
         state: started
@@ -87,10 +75,7 @@
       community.docker.docker_container:
         name: grafana
         image: grafana/grafana:latest
-        networks:
-          - name: app_network
-        ports:
-          - "3001:3000"
+        network_mode: host
         volumes:
           - "grafana_data:/var/lib/grafana"
         state: started
