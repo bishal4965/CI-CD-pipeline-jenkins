@@ -6,7 +6,7 @@
       community.docker.docker_network:
         name: app_network
         state: present
-
+    
     - name: Stop and remove existing containers
       community.docker.docker_container:
         name: "{{ item }}"
@@ -18,7 +18,31 @@
         - db
         - prometheus
         - grafana
-
+        - jenkins-proxy
+    
+    - name: Create Nginx proxy configuration directory
+      ansible.builtin.file:
+        path: "./nginx"
+        state: directory
+    
+    - name: Create Nginx proxy configuration
+      ansible.builtin.copy:
+        dest: "./nginx/jenkins-proxy.conf"
+        content: |
+          server {
+              listen 80;
+              server_name localhost;
+              
+              location /prometheus/ {
+                  proxy_pass http://host.docker.internal:8080/prometheus/;
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $scheme;
+                  proxy_read_timeout 90;
+              }
+          }
+    
     - name: Deploy MySQL container
       community.docker.docker_container:
         name: db
@@ -35,17 +59,16 @@
           - "mysql_data:/var/lib/mysql"
         state: started
         restart_policy: always
-
+    
     - name: Wait for MySQL to initialize
       ansible.builtin.wait_for:
         timeout: 30
       delegate_to: localhost
-
+    
     - name: Deploy backend container
       community.docker.docker_container:
         name: backend
         image: "{{ docker_hub_user }}/backend:latest"
-
         networks:
           - name: app_network
         ports:
@@ -57,19 +80,31 @@
           DB_PASSWORD: "user@1234"
         state: started
         restart_policy: always
-
+    
     - name: Deploy frontend container
       community.docker.docker_container:
         name: frontend
         image: "{{ docker_hub_user }}/frontend:latest"
-
         networks:
           - name: app_network
         ports:
           - "80:80"
         state: started
         restart_policy: always
-
+    
+    - name: Deploy Nginx proxy for Jenkins
+      community.docker.docker_container:
+        name: jenkins-proxy
+        image: nginx:latest
+        networks:
+          - name: app_network
+        volumes:
+          - "./nginx/jenkins-proxy.conf:/etc/nginx/conf.d/default.conf:ro"
+        etc_hosts:
+          host.docker.internal: "host-gateway"
+        state: started
+        restart_policy: always
+    
     - name: Deploy Prometheus
       community.docker.docker_container:
         name: prometheus
@@ -80,11 +115,9 @@
           - "9091:9090"
         volumes:
           - "./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro"
-        etc_hosts:
-          host.docker.internal: "host-gateway"
         state: started
         restart_policy: always
-
+    
     - name: Deploy Grafana
       community.docker.docker_container:
         name: grafana
