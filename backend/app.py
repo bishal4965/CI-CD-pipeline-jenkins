@@ -5,6 +5,7 @@ from prometheus_client import Counter, Histogram, generate_latest
 import time
 from urllib.parse import quote_plus
 from sqlalchemy import inspect
+from sqlalchemy.sql import text
 
 # Prometheus metrics
 REQUEST_COUNT = Counter('http_requests_total', 'Total HTTP Requests', ['method', 'endpoint'])
@@ -41,7 +42,7 @@ with app.app_context():
         columns = [c['name'] for c in inspector.get_columns('todo')]
         if 'completed' not in columns:
             with db.engine.connect() as connection:
-                connection.execute('ALTER TABLE todo ADD COLUMN completed BOOLEAN DEFAULT FALSE')
+                connection.execute(text('ALTER TABLE todo ADD COLUMN completed BOOLEAN DEFAULT FALSE'))
 
 
 # Middleware for metrics
