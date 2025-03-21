@@ -16,8 +16,6 @@
         - frontend
         - backend
         - db
-        - prometheus
-        - grafana
     
     - name: Deploy MySQL container
       community.docker.docker_container:
