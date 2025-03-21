@@ -40,7 +40,9 @@ with app.app_context():
         # Check if completed column exists, if not add it
         columns = [c['name'] for c in inspector.get_columns('todo')]
         if 'completed' not in columns:
-            db.engine.execute('ALTER TABLE todo ADD COLUMN completed BOOLEAN DEFAULT FALSE')
+            with db.engine.connect() as connection:
+                connection.execute('ALTER TABLE todo ADD COLUMN completed BOOLEAN DEFAULT FALSE')
+
 
 # Middleware for metrics
 @app.before_request
