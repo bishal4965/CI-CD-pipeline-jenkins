@@ -59,11 +59,11 @@ window.addEventListener("load", function() {
 
   // Adds a new todo
   async function addTodo(task) {
+    const button = todoForm.querySelector('button');
+    button.disabled = true;
+    button.textContent = 'Adding...';
+    
     try {
-      const button = todoForm.querySelector('button');
-      button.disabled = true;
-      button.textContent = 'Adding...';
-      
       const response = await fetch(apiBaseUrl, {
         method: "POST",
         headers: {
@@ -74,8 +74,12 @@ window.addEventListener("load", function() {
       
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       
-      // After adding, reload the todos
-      await fetchTodos();
+      try {
+        // After adding, reload the todos
+        await fetchTodos();
+      } catch (fetchError) {
+        console.error("Error fetching todos:", fetchError);
+      }
     } catch (error) {
       console.error("Error adding todo:", error);
     } finally {
@@ -83,7 +87,7 @@ window.addEventListener("load", function() {
       button.textContent = 'Add Todo';
     }
   }
-
+  
   // Deletes a todo
   async function deleteTodo(id) {
     try {
